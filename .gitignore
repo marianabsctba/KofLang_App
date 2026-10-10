@@ -1,0 +1,7 @@
+# Compilador Kof baixado localmente (ver README)
+.kof/
+# Saidas de build e logs
+dist/
+target/
+.logs/
+*.log
