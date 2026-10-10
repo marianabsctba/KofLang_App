@@ -1,0 +1,89 @@
+// Gateway: porta de entrada da suite Be Safe. Serve o frontend e repassa
+// cada chamada /api para o microsservico responsavel.
+import kof.http
+
+String urlServico(String variavel, String padrao) {
+    var valor = config.env(variavel)
+    if (valor != null) {
+        return valor
+    }
+    return padrao
+}
+
+String phishing() = urlServico("PHISHING_URL", "http://localhost:8081")
+String senhas() = urlServico("SENHAS_URL", "http://localhost:8082")
+
+String indisponivel() = "{\"erro\": \"servico indisponivel, tente novamente\"}"
+
+// O cliente http devolve so o corpo; erro de validacao do servico chega
+// como {"erro": ...} e e repassado como 400.
+String repassarPost(String url, String corpo) {
+    try {
+        var resposta = http.post(url, corpo)
+        if (resposta.startsWith("{\"erro\"")) {
+            return status(400, resposta)
+        }
+        return resposta
+    } catch (Exception e) {
+        return status(502, indisponivel())
+    }
+}
+
+String repassarGet(String url) {
+    try {
+        return http.get(url)
+    } catch (Exception e) {
+        return status(502, indisponivel())
+    }
+}
+
+// So repassa o tamanho se for numerico, para nada alem de digitos
+// chegar na URL do servico interno.
+String parametroTamanho(String? tamanho) {
+    if (tamanho == null) {
+        return ""
+    }
+    if (tamanho.length == 0 || tamanho.length > 3) {
+        return ""
+    }
+    for (var i = 0; i < tamanho.length; i++) {
+        var c = tamanho.charAt(i) as Int
+        if (c < 48 || c > 57) {
+            return ""
+        }
+    }
+    return "?tamanho=" + tamanho
+}
+
+main() {
+    http.timeout(10000)
+    var app = web.app()
+    app.health("/saude")
+
+    app.post("/api/phishing") {
+        return repassarPost(phishing() + "/analisar", body())
+    }
+
+    app.post("/api/senhas/avaliar") {
+        return repassarPost(senhas() + "/avaliar", body())
+    }
+
+    app.get("/api/senhas/gerar") {
+        return repassarGet(senhas() + "/gerar" + parametroTamanho(query("tamanho")))
+    }
+
+    var frontend = config.env("FRONTEND_DIR")
+    if (frontend != null) {
+        app.serveDir("/", frontend)
+    }
+
+    app.listen(porta(8080))
+}
+
+Int porta(Int padrao) {
+    var valor = config.env("PORTA")
+    if (valor != null) {
+        return Integer.parseInt(valor)
+    }
+    return padrao
+}
