@@ -1,0 +1,171 @@
+// Logica do detector de phishing, igual a de servicos/phishing, rodando
+// direto no navegador para a versao estatica (GitHub Pages).
+
+record Sinal(String tipo, String descricao, Int peso)
+record Analise(Int risco, String nivel, Int links, List<Sinal> sinais)
+
+// Grupos de expressoes; basta uma do grupo aparecer para o sinal contar.
+List<String> urgencia() {
+    return listOf("urgente", "imediatamente", "ultimo aviso", "24 horas", "sera bloquead", "sera suspens", "conta suspensa", "acao necessaria", "evite o bloqueio", "prazo final")
+}
+
+List<String> credenciais() {
+    return listOf("senha", "codigo de verificacao", "codigo de seguranca", "token", "confirme seus dados", "atualize seus dados", "dados do cartao", "numero do cartao", "cvv", "login")
+}
+
+List<String> dinheiro() {
+    return listOf("pix", "transferencia", "boleto", "voce ganhou", "premio", "reembolso", "restituicao", "sorteado", "divida", "pagamento pendente")
+}
+
+List<String> saudacaoGenerica() {
+    return listOf("prezado cliente", "caro cliente", "caro usuario", "prezado usuario", "ola cliente")
+}
+
+List<String> anexosPerigosos() {
+    return listOf(".exe", ".scr", ".bat", ".js", ".vbs", ".iso", ".zip", ".rar")
+}
+
+List<String> encurtadores() {
+    return listOf("bit.ly", "tinyurl.com", "cutt.ly", "is.gd", "t.co", "rebrand.ly", "encurtador.com.br")
+}
+
+List<String> tldsSuspeitos() {
+    return listOf(".xyz", ".top", ".click", ".online", ".live", ".shop", ".icu", ".buzz", ".rest")
+}
+
+List<String> marcas() {
+    return listOf("itau", "bradesco", "nubank", "caixa", "santander", "bancodobrasil", "gov", "receita", "correios", "mercadolivre", "netflix", "microsoft", "google", "apple")
+}
+
+Bool contemAlgum(String texto, List<String> termos) {
+    for (var termo in termos) {
+        if (texto.contains(termo)) {
+            return true
+        }
+    }
+    return false
+}
+
+// Caracteres que encerram um link dentro de um texto livre.
+Bool fimDeLink(Int c) = c == 32 || c == 10 || c == 13 || c == 9 || c == 34 || c == 39 || c == 60 || c == 62 || c == 41
+
+List<String> extrairLinks(String texto) {
+    var links = listOf<String>()
+    var i = texto.indexOf("http")
+    while (i >= 0) {
+        var fim = i
+        while (fim < texto.length && !fimDeLink(texto.charAt(fim) as Int)) {
+            fim = fim + 1
+        }
+        var link = texto.substring(i, fim)
+        if (link.startsWith("http://") || link.startsWith("https://")) {
+            links.add(link)
+        }
+        var resto = texto.substring(fim, texto.length)
+        var proximo = resto.indexOf("http")
+        if (proximo < 0) {
+            i = -1
+        } else {
+            i = fim + proximo
+        }
+    }
+    return links
+}
+
+// Host = trecho entre "://" e a primeira "/", "?" ou "#".
+String hostDe(String link) {
+    var inicio = link.indexOf("://") + 3
+    var fim = inicio
+    while (fim < link.length) {
+        var c = link.charAt(fim) as Int
+        if (c == 47 || c == 63 || c == 35) {
+            return link.substring(inicio, fim)
+        }
+        fim = fim + 1
+    }
+    return link.substring(inicio, fim)
+}
+
+// Host formado so por digitos e pontos (ex.: 192.168.0.10).
+Bool ehIp(String host) {
+    if (host.length == 0) {
+        return false
+    }
+    for (var i = 0; i < host.length; i++) {
+        var c = host.charAt(i) as Int
+        if (!(c == 46 || (c >= 48 && c <= 57))) {
+            return false
+        }
+    }
+    return true
+}
+
+List<Sinal> sinaisDoLink(String link) {
+    var sinais = listOf<Sinal>()
+    var host = hostDe(link)
+    if (link.startsWith("http://")) {
+        sinais.add(Sinal("link", "Link sem HTTPS: " + host, 10))
+    }
+    if (host.contains("@")) {
+        sinais.add(Sinal("link", "Link com '@' no endereco, truque para esconder o destino real: " + host, 25))
+    }
+    if (ehIp(host)) {
+        sinais.add(Sinal("link", "Link aponta para um IP em vez de um dominio: " + host, 25))
+    }
+    if (host.contains("xn--")) {
+        sinais.add(Sinal("link", "Dominio com caracteres disfarcados (punycode): " + host, 25))
+    }
+    if (contemAlgum(host, encurtadores())) {
+        sinais.add(Sinal("link", "Link encurtado esconde o destino: " + host, 15))
+    }
+    if (contemAlgum(host, tldsSuspeitos())) {
+        sinais.add(Sinal("link", "Dominio com terminacao muito usada em golpes: " + host, 10))
+    }
+    // Marca conhecida misturada com hifen costuma ser imitacao,
+    // ex.: itau-seguranca.com ou nubank-atualizacao.net.
+    if (contemAlgum(host, marcas()) && host.contains("-")) {
+        sinais.add(Sinal("link", "Dominio imita uma marca conhecida: " + host, 20))
+    }
+    return sinais
+}
+
+String nivel(Int risco) {
+    if (risco >= 50) { return "alto" }
+    if (risco >= 20) { return "medio" }
+    return "baixo"
+}
+
+Analise analisar(String mensagem) {
+    var texto = mensagem.toLowerCase()
+    var sinais = listOf<Sinal>()
+    if (contemAlgum(texto, urgencia())) {
+        sinais.add(Sinal("urgencia", "Cria senso de urgencia ou ameaca de bloqueio", 15))
+    }
+    if (contemAlgum(texto, credenciais())) {
+        sinais.add(Sinal("credenciais", "Pede senha, codigo ou dados pessoais", 25))
+    }
+    if (contemAlgum(texto, dinheiro())) {
+        sinais.add(Sinal("dinheiro", "Envolve Pix, boleto, premio ou pagamento", 15))
+    }
+    if (contemAlgum(texto, saudacaoGenerica())) {
+        sinais.add(Sinal("saudacao", "Saudacao generica, sem o seu nome", 5))
+    }
+    if (contemAlgum(texto, anexosPerigosos())) {
+        sinais.add(Sinal("anexo", "Menciona anexo executavel ou compactado", 15))
+    }
+    var links = extrairLinks(mensagem)
+    for (var link in links) {
+        for (var s in sinaisDoLink(link)) {
+            sinais.add(s)
+        }
+    }
+    var risco = 0
+    for (var s in sinais) {
+        risco = risco + s.peso
+    }
+    if (risco > 100) {
+        risco = 100
+    }
+    return Analise(risco, nivel(risco), links.size(), sinais)
+}
+

@@ -1,0 +1,114 @@
+// Versao estatica da suite Be Safe para o GitHub Pages: a mesma logica dos
+// microsservicos, compilada junto com a tela para rodar no navegador.
+// Nada sai da maquina de quem usa.
+import kof.random
+
+String marcador(Int peso) {
+    if (peso >= 25) { return "[!!!]" }
+    if (peso >= 15) { return "[!!]" }
+    return "[!]"
+}
+
+String resumoPhishing(Analise a) {
+    var texto = "Risco " + a.nivel + ": " + a.risco + "/100  (" + a.links + " link(s) encontrados)"
+    if (a.sinais.size() == 0) {
+        return texto + "\nNenhum sinal classico de golpe. Mesmo assim, desconfie de pedidos inesperados."
+    }
+    for (var s in a.sinais) {
+        texto = texto + "\n" + marcador(s.peso) + " " + s.descricao
+    }
+    if (a.nivel == "alto") {
+        texto = texto + "\n\nNao clique nos links e nao responda. Fale com a empresa pelo canal oficial."
+    }
+    return texto
+}
+
+String barra(Int forca) {
+    var texto = ""
+    for (var i = 0; i < 5; i++) {
+        if (i <= forca) {
+            texto = texto + "#####"
+        } else {
+            texto = texto + "....."
+        }
+    }
+    return texto
+}
+
+String resumoSenha(Avaliacao a) {
+    var texto = "[" + barra(a.forca) + "]  " + a.rotulo + "\n"
+    texto = texto + "Entropia: " + a.entropiaBits + " bits  |  Tempo para quebrar: " + a.tempoQuebra
+    for (var d in a.dicas) {
+        texto = texto + "\n- " + d
+    }
+    texto = texto + "\n\nUm sistema seguro nunca guarda a senha em si: guarda um hash lento"
+    texto = texto + " (como PBKDF2 com 600 mil iteracoes), que torna cada tentativa de quebra cara."
+    return texto
+}
+
+main() {
+    var janela = Window("Be Safe - Suite de Conscientizacao")
+    var logo = Image("static/besafe-logo.png")
+    var titulo = Label("Suite de Conscientizacao")
+    var privacidade = Label("Tudo roda no seu navegador: nada do que voce digita sai daqui. Nenhum link e aberto.")
+
+    // Detector de phishing
+    var tituloPhishing = Label("Detector de phishing")
+    var instrucaoPhishing = Label("Cole abaixo o texto de um e-mail, SMS ou WhatsApp suspeito.")
+    var mensagem = Textarea("")
+    var resultadoPhishing = Label("")
+    var botaoPhishing = Button("Analisar mensagem", () -> {
+        var texto = mensagem.text()
+        if (texto.trim().length == 0) {
+            resultadoPhishing.text = "Cole o texto da mensagem antes de analisar."
+        } else if (texto.length > 50000) {
+            resultadoPhishing.text = "Mensagem muito grande."
+        } else {
+            resultadoPhishing.text = resumoPhishing(analisar(texto))
+        }
+    })
+
+    // Cofre de senhas
+    var tituloSenhas = Label("Cofre de senhas")
+    var instrucaoSenhas = Label("Teste a forca de uma senha ou gere uma senha forte.")
+    var senha = Input("")
+    var resultadoSenhas = Label("")
+    var botaoAvaliar = Button("Avaliar senha", () -> {
+        var valor = senha.text()
+        if (valor.length == 0 || valor.length > 256) {
+            resultadoSenhas.text = "Digite uma senha de ate 256 caracteres."
+        } else {
+            resultadoSenhas.text = resumoSenha(avaliar(valor))
+        }
+    })
+    var botaoGerar = Button("Gerar senha forte", () -> {
+        var gerada = random.randomString(20, alfabetoGerador())
+        senha.text = gerada
+        resultadoSenhas.text = "Senha gerada com " + entropia(gerada) + " bits de entropia.\nGuarde num gerenciador de senhas e use uma diferente em cada site."
+    })
+
+    // Tema preto e rosa. setStyle substitui o estilo inteiro do widget.
+    logo.setStyle(Style("width: 300; border-radius: 12"))
+    titulo.setStyle(Style("color: #ffffff; font-size: 22; font-weight: bold"))
+    privacidade.setStyle(Style("color: #ff8cc6; font-size: 13"))
+    tituloPhishing.setStyle(Style("color: #ff2d95; font-size: 20; font-weight: bold"))
+    tituloSenhas.setStyle(Style("color: #ff2d95; font-size: 20; font-weight: bold"))
+    instrucaoPhishing.setStyle(Style("color: #ffd1e8"))
+    instrucaoSenhas.setStyle(Style("color: #ffd1e8"))
+    mensagem.setStyle(Style("background: #1a1a1a; color: #ffffff; border: 1px solid #ff2d95; border-radius: 6; padding: 8; height: 140"))
+    senha.setStyle(Style("background: #1a1a1a; color: #ffffff; border: 1px solid #ff2d95; border-radius: 6; padding: 8"))
+    botaoPhishing.setStyle(Style("background: #ff2d95; color: #000000; border-radius: 6; padding: 10"))
+    botaoAvaliar.setStyle(Style("background: #ff2d95; color: #000000; border-radius: 6; padding: 10"))
+    botaoGerar.setStyle(Style("background: #000000; color: #ff2d95; border: 1px solid #ff2d95; border-radius: 6; padding: 10"))
+    resultadoPhishing.setStyle(Style("color: #ffffff"))
+    resultadoSenhas.setStyle(Style("color: #ffffff"))
+
+    var phishing = View(Style("background: #0d0d0d; padding: 20; border-radius: 12; border: 1px solid #ff2d95"))
+    phishing.bind(Column(listOf(tituloPhishing, instrucaoPhishing, mensagem, botaoPhishing, resultadoPhishing)))
+
+    var senhas = View(Style("background: #0d0d0d; padding: 20; border-radius: 12; border: 1px solid #ff2d95"))
+    senhas.bind(Column(listOf(tituloSenhas, instrucaoSenhas, senha, Row(listOf(botaoAvaliar, botaoGerar)), resultadoSenhas)))
+
+    janela.bind(Column(listOf(logo, titulo, privacidade, phishing, senhas)))
+    janela.show()
+}

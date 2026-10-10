@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Be Safe - Suite de Conscientizacao</title>
+  <link rel="icon" href="static/besafe-logo.png">
+  <!-- Substitui o index.html padrao do KofJS: mesma estrutura (#kof-root
+       e #kof-status), sem a moldura de terminal, no tema preto e rosa. -->
+  <style>
+    /* O runtime KofJS injeta um tema escuro proprio ao montar a tela;
+       !important mantem o preto e rosa por cima dele. */
+    :root { --bg: #000000 !important; --panel: #000000 !important; --border: #ff2d95 !important; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; height: auto !important; overflow: auto !important; background: #000000 !important; color: #ffffff; }
+    body { font-family: "Cascadia Code", "Fira Code", Consolas, Menlo, monospace; }
+    #kof-root {
+      max-width: 760px; margin: 0 auto; padding: 32px 16px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    #kof-status { display: none; }
+    .kof-label { font-size: 14px; line-height: 1.6; color: #ffd1e8; white-space: pre-wrap; word-break: break-word; }
+    .kof-button { font-size: 14px; font-weight: bold; padding: 10px 14px; cursor: pointer; border: 0; }
+    .kof-button:hover { filter: brightness(1.15); }
+    .kof-input { font-size: 14px; width: 100%; font-family: inherit; outline: none; }
+    .kof-input:focus { box-shadow: 0 0 0 2px #ff2d95; }
+    .kof-column { display: flex; flex-direction: column; gap: 12px; }
+    .kof-row { display: flex; flex-direction: row; gap: 8px; align-items: center; }
+    .kof-view { box-sizing: border-box; }
+    .kof-window { display: flex; flex-direction: column; gap: 8px; }
+    @media (max-width: 600px) {
+      #kof-root { padding: 16px; }
+      .kof-row { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div id="kof-root"></div>
+  <div id="kof-status"></div>
+  <script type="module" src="Default.mjs"></script>
+</body>
+</html>

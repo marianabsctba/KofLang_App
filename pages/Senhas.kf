@@ -1,0 +1,152 @@
+// Logica do cofre de senhas, igual a de servicos/senhas, rodando direto
+// no navegador para a versao estatica (GitHub Pages).
+import kof.random
+
+// Sem hashSeguro: o PBKDF2 do Kof 0.5.0-beta depende do host e nao roda num
+// navegador comum. O hash continua na versao com microsservicos.
+record Avaliacao(Int forca, String rotulo, Int entropiaBits, String tempoQuebra, List<String> dicas)
+
+// Sem caracteres ambiguos (0/O, 1/l/I) para facilitar a digitacao.
+String alfabetoGerador() = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%&*?-_=+"
+
+List<String> senhasComuns() {
+    return listOf("123456", "123456789", "12345678", "senha", "password", "qwerty", "admin", "abc123", "111111", "123123", "iloveyou", "brasil", "102030", "mudar123", "senha123")
+}
+
+// log2 sem biblioteca: parte inteira por divisoes sucessivas e parte
+// fracionaria pelo metodo de quadrados (20 bits de precisao).
+Double log2(Double valor) {
+    var x = valor
+    Double resultado = 0.0
+    while (x >= 2.0) {
+        x = x / 2.0
+        resultado = resultado + 1.0
+    }
+    Double bit = 0.5
+    for (var i = 0; i < 20; i++) {
+        x = x * x
+        if (x >= 2.0) {
+            x = x / 2.0
+            resultado = resultado + bit
+        }
+        bit = bit / 2.0
+    }
+    return resultado
+}
+
+// Tamanho do conjunto de caracteres que um atacante precisaria testar.
+Int tamanhoDoConjunto(String senha) {
+    var minusculas = false
+    var maiusculas = false
+    var digitos = false
+    var simbolos = false
+    for (var i = 0; i < senha.length; i++) {
+        var c = senha.charAt(i) as Int
+        if (c >= 97 && c <= 122) {
+            minusculas = true
+        } else if (c >= 65 && c <= 90) {
+            maiusculas = true
+        } else if (c >= 48 && c <= 57) {
+            digitos = true
+        } else {
+            simbolos = true
+        }
+    }
+    var total = 0
+    if (minusculas) { total = total + 26 }
+    if (maiusculas) { total = total + 26 }
+    if (digitos) { total = total + 10 }
+    if (simbolos) { total = total + 33 }
+    return total
+}
+
+// Sequencia de 3+ caracteres consecutivos (abc, 123) ou repetidos (aaa).
+Bool temSequencia(String senha) {
+    for (var i = 0; i + 2 < senha.length; i++) {
+        var a = senha.charAt(i) as Int
+        var b = senha.charAt(i + 1) as Int
+        var c = senha.charAt(i + 2) as Int
+        if (b == a + 1 && c == b + 1) {
+            return true
+        }
+        if (a == b && b == c) {
+            return true
+        }
+    }
+    return false
+}
+
+Int entropia(String senha) {
+    var conjunto = tamanhoDoConjunto(senha)
+    if (conjunto == 0) {
+        return 0
+    }
+    Double bits = log2(conjunto as Double) * (senha.length as Double)
+    if (temSequencia(senha)) {
+        bits = bits - 10.0
+    }
+    if (bits < 0.0) {
+        return 0
+    }
+    return bits as Int
+}
+
+// Ataque offline com GPU: ~10 bilhoes de tentativas por segundo, em media
+// a senha cai na metade do espaco de busca.
+String tempoQuebra(Int bits) {
+    Double segundos = math.pow(2.0, (bits - 1) as Double) / 10000000000.0
+    if (segundos < 1.0) { return "instantaneo" }
+    if (segundos < 60.0) { return "segundos" }
+    if (segundos < 3600.0) { return "minutos" }
+    if (segundos < 86400.0) { return "horas" }
+    if (segundos < 2592000.0) { return "dias" }
+    if (segundos < 31536000.0) { return "meses" }
+    if (segundos < 3153600000.0) { return "anos" }
+    return "seculos"
+}
+
+String rotulo(Int forca) {
+    if (forca == 0) { return "muito fraca" }
+    if (forca == 1) { return "fraca" }
+    if (forca == 2) { return "razoavel" }
+    if (forca == 3) { return "forte" }
+    return "muito forte"
+}
+
+Int forca(Int bits) {
+    if (bits < 28) { return 0 }
+    if (bits < 36) { return 1 }
+    if (bits < 60) { return 2 }
+    if (bits < 80) { return 3 }
+    return 4
+}
+
+Avaliacao avaliar(String senha) {
+    var dicas = listOf<String>()
+    var bits = entropia(senha)
+    var comum = false
+    for (var s in senhasComuns()) {
+        if (senha.toLowerCase().contains(s)) {
+            comum = true
+        }
+    }
+    if (comum) {
+        bits = 0
+        dicas.add("Contem uma das senhas mais vazadas do mundo: e a primeira que um atacante testa")
+    }
+    if (senha.length < 12) {
+        dicas.add("Use pelo menos 12 caracteres; tamanho pesa mais que complexidade")
+    }
+    if (tamanhoDoConjunto(senha) < 62) {
+        dicas.add("Misture letras maiusculas, minusculas, numeros e simbolos")
+    }
+    if (temSequencia(senha)) {
+        dicas.add("Evite sequencias e repeticoes como abc, 123 ou aaa")
+    }
+    if (dicas.size() == 0) {
+        dicas.add("Otima senha. Guarde num gerenciador de senhas e nao reutilize em outros sites")
+    }
+    var f = forca(bits)
+    return Avaliacao(f, rotulo(f), bits, tempoQuebra(bits), dicas)
+}
+
