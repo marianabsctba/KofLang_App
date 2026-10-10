@@ -61,6 +61,22 @@ curl "localhost:8080/api/senhas/gerar?tamanho=20"
 
 A senha vai sempre no corpo de um `POST`, nunca na URL, para nao aparecer em historico nem em log de acesso.
 
+## Versao estatica (GitHub Pages)
+
+A pasta `pages/` tem a mesma suite sem servidor: a logica dos microsservicos (`Phishing.kf` e `Senhas.kf`) e compilada junto com a tela para JavaScript e roda inteira no navegador de quem usa. Continua sendo 100% Kof.
+
+- A cada push na `main`, o workflow `.github/workflows/pages.yml` baixa o Kof, confere o checksum, compila e publica.
+- Para ativar: no GitHub, **Settings > Pages > Source: GitHub Actions**.
+- Diferenca para a versao com microsservicos: o PBKDF2 do Kof 0.5.0-beta nao roda num navegador comum, entao a versao estatica explica o hash em vez de mostra-lo. O gerador de senhas usa `crypto.getRandomValues`, que e seguro.
+- Se mudar a logica em `servicos/phishing` ou `servicos/senhas`, replique em `pages/Phishing.kf` e `pages/Senhas.kf`.
+
+Para testar localmente, compile e sirva `dist/pages` com qualquer servidor estatico que entregue `.mjs` como `text/javascript`:
+
+```powershell
+.\.kof\bin\kof.bat build pages --target js --output dist/pages
+Copy-Item pages\index.html, pages\static dist\pages -Recurse -Force
+```
+
 ## Notas sobre o Kof 0.5.0-beta
 
 A linguagem ainda esta em beta. Os contornos usados no codigo estao comentados onde aparecem:
