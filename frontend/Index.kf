@@ -1,0 +1,164 @@
+// Frontend da suite Be Safe, escrito em Kof e compilado para JavaScript
+// (KofJS). O gateway serve esta pagina e a API /api na mesma origem.
+import kof.http
+
+record Sinal(String tipo, String descricao, Int peso)
+record Analise(Int risco, String nivel, Int links)
+record Avaliacao(Int forca, String rotulo, Int entropiaBits, String tempoQuebra, String hashSeguro)
+record SenhaGerada(String senha, Int entropiaBits)
+
+// Lambdas capturam copias somente leitura; estado mutavel fica em static.
+class Tela {
+    static Int analises = 0
+}
+
+String buscar(String url) {
+    return http.get(url)
+}
+
+String enviar(String url, String corpo) {
+    return http.post(url, corpo)
+}
+
+// Contorno: no KofJS 0.5.0-beta o json.decode nao converte uma lista
+// aninhada dentro de outro record. Os servicos sempre mandam a lista
+// como ultimo campo, e ela e decodificada separadamente.
+String listaFinal(String corpo, String campo) {
+    var chave = "\"" + campo + "\":"
+    return corpo.substring(corpo.indexOf(chave) + chave.length, corpo.length - 1)
+}
+
+String marcador(Int peso) {
+    if (peso >= 25) { return "[!!!]" }
+    if (peso >= 15) { return "[!!]" }
+    return "[!]"
+}
+
+String resumoPhishing(String corpo) {
+    var a = json.decode<Analise>(corpo)
+    var sinais = json.decode<List<Sinal>>(listaFinal(corpo, "sinais"))
+    var texto = "Risco " + a.nivel + ": " + a.risco + "/100  (" + a.links + " link(s) encontrados)"
+    if (sinais.size() == 0) {
+        return texto + "\nNenhum sinal classico de golpe. Mesmo assim, desconfie de pedidos inesperados."
+    }
+    for (var s in sinais) {
+        texto = texto + "\n" + marcador(s.peso) + " " + s.descricao
+    }
+    if (a.nivel == "alto") {
+        texto = texto + "\n\nNao clique nos links e nao responda. Fale com a empresa pelo canal oficial."
+    }
+    return texto
+}
+
+String barra(Int forca) {
+    var texto = ""
+    for (var i = 0; i < 5; i++) {
+        if (i <= forca) {
+            texto = texto + "#####"
+        } else {
+            texto = texto + "....."
+        }
+    }
+    return texto
+}
+
+String resumoSenha(String corpo) {
+    var a = json.decode<Avaliacao>(corpo)
+    var dicas = json.decode<List<String>>(listaFinal(corpo, "dicas"))
+    var texto = "[" + barra(a.forca) + "]  " + a.rotulo + "\n"
+    texto = texto + "Entropia: " + a.entropiaBits + " bits  |  Tempo para quebrar: " + a.tempoQuebra
+    for (var d in dicas) {
+        texto = texto + "\n- " + d
+    }
+    texto = texto + "\n\nComo um sistema seguro guarda esta senha (PBKDF2):\n" + a.hashSeguro
+    return texto
+}
+
+main() {
+    var janela = Window("Be Safe - Suite de Conscientizacao")
+    var logo = Image("static/besafe-logo.png")
+    var titulo = Label("Suite de Conscientizacao")
+    var privacidade = Label("Nada do que voce digita aqui e salvo. Nenhum link e aberto.")
+
+    // Detector de phishing
+    var tituloPhishing = Label("Detector de phishing")
+    var instrucaoPhishing = Label("Cole abaixo o texto de um e-mail, SMS ou WhatsApp suspeito.")
+    var mensagem = Textarea("")
+    var resultadoPhishing = Label("")
+    var botaoPhishing = Button("Analisar mensagem", () -> {
+        resultadoPhishing.text = "Analisando..."
+        spawn {
+            try {
+                var tarefa = spawn enviar("/api/phishing", mensagem.text())
+                var corpo = await tarefa
+                if (corpo.startsWith("{\"erro\"")) {
+                    resultadoPhishing.text = "Cole o texto da mensagem antes de analisar."
+                } else {
+                    Tela.analises = Tela.analises + 1
+                    resultadoPhishing.text = resumoPhishing(corpo)
+                }
+            } catch (Exception e) {
+                resultadoPhishing.text = "Servico indisponivel. Confira se os microsservicos estao no ar."
+            }
+        }
+    })
+
+    // Cofre de senhas
+    var tituloSenhas = Label("Cofre de senhas")
+    var instrucaoSenhas = Label("Teste a forca de uma senha ou gere uma senha forte.")
+    var senha = Input("")
+    var resultadoSenhas = Label("")
+    var botaoAvaliar = Button("Avaliar senha", () -> {
+        resultadoSenhas.text = "Avaliando..."
+        spawn {
+            try {
+                var tarefa = spawn enviar("/api/senhas/avaliar", senha.text())
+                var corpo = await tarefa
+                if (corpo.startsWith("{\"erro\"")) {
+                    resultadoSenhas.text = "Digite uma senha de ate 256 caracteres."
+                } else {
+                    resultadoSenhas.text = resumoSenha(corpo)
+                }
+            } catch (Exception e) {
+                resultadoSenhas.text = "Servico indisponivel. Confira se os microsservicos estao no ar."
+            }
+        }
+    })
+    var botaoGerar = Button("Gerar senha forte", () -> {
+        spawn {
+            try {
+                var tarefa = spawn buscar("/api/senhas/gerar?tamanho=20")
+                var gerada = json.decode<SenhaGerada>(await tarefa)
+                senha.text = gerada.senha
+                resultadoSenhas.text = "Senha gerada com " + gerada.entropiaBits + " bits de entropia.\nGuarde num gerenciador de senhas e use uma diferente em cada site."
+            } catch (Exception e) {
+                resultadoSenhas.text = "Servico indisponivel. Confira se os microsservicos estao no ar."
+            }
+        }
+    })
+
+    // Tema preto e rosa. setStyle substitui o estilo inteiro do widget.
+    logo.setStyle(Style("width: 300; border-radius: 12"))
+    titulo.setStyle(Style("color: #ffffff; font-size: 22; font-weight: bold"))
+    privacidade.setStyle(Style("color: #ff8cc6; font-size: 13"))
+    tituloPhishing.setStyle(Style("color: #ff2d95; font-size: 20; font-weight: bold"))
+    tituloSenhas.setStyle(Style("color: #ff2d95; font-size: 20; font-weight: bold"))
+    instrucaoPhishing.setStyle(Style("color: #ffd1e8"))
+    instrucaoSenhas.setStyle(Style("color: #ffd1e8"))
+    mensagem.setStyle(Style("background: #1a1a1a; color: #ffffff; border: 1px solid #ff2d95; border-radius: 6; padding: 8; height: 140"))
+    senha.setStyle(Style("background: #1a1a1a; color: #ffffff; border: 1px solid #ff2d95; border-radius: 6; padding: 8"))
+    botaoPhishing.setStyle(Style("background: #ff2d95; color: #000000; border-radius: 6; padding: 10"))
+    botaoAvaliar.setStyle(Style("background: #ff2d95; color: #000000; border-radius: 6; padding: 10"))
+    botaoGerar.setStyle(Style("background: #000000; color: #ff2d95; border: 1px solid #ff2d95; border-radius: 6; padding: 10"))
+    resultadoPhishing.setStyle(Style("color: #ffffff"))
+    resultadoSenhas.setStyle(Style("color: #ffffff"))
+
+    var phishing = View(Style("background: #0d0d0d; padding: 20; border-radius: 12; border: 1px solid #ff2d95"))
+    phishing.bind(Column(listOf(tituloPhishing, instrucaoPhishing, mensagem, botaoPhishing, resultadoPhishing)))
+
+    var senhas = View(Style("background: #0d0d0d; padding: 20; border-radius: 12; border: 1px solid #ff2d95"))
+    senhas.bind(Column(listOf(tituloSenhas, instrucaoSenhas, senha, Row(listOf(botaoAvaliar, botaoGerar)), resultadoSenhas)))
+
+    janela.bind(Column(listOf(logo, titulo, privacidade, phishing, senhas)))
+    janela.show()
+}
