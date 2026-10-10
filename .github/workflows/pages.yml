@@ -1,0 +1,59 @@
+# Compila a versao estatica (pasta pages/, Kof -> JavaScript) e publica no
+# GitHub Pages. Requer Settings > Pages > Source: GitHub Actions.
+name: Publicar no GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  KOF_VERSAO: 0.5.0-beta
+
+jobs:
+  compilar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Baixar o compilador Kof e conferir o checksum
+        run: |
+          base="https://github.com/KofLang/Kof4j/releases/download/kof-${KOF_VERSAO}-linux-x86_64"
+          arquivo="kof-${KOF_VERSAO}-linux-x86_64.tar.gz"
+          curl -sSfL -o "$arquivo" "$base/$arquivo"
+          curl -sSfL -o SHA256SUMS "$base/SHA256SUMS"
+          grep "$arquivo" SHA256SUMS | sha256sum -c -
+          mkdir -p .kof
+          tar -xzf "$arquivo" -C .kof --strip-components=1
+          .kof/bin/kof version
+
+      - name: Compilar a versao estatica
+        run: |
+          .kof/bin/kof build pages --target js --output dist/pages
+          cp pages/index.html dist/pages/
+          cp -r pages/static dist/pages/
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/pages
+
+  publicar:
+    needs: compilar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
