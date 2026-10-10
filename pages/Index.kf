@@ -1,6 +1,6 @@
-// Versao estatica da suite Be Safe para o GitHub Pages: a mesma logica dos
-// microsservicos, compilada junto com a tela para rodar no navegador.
-// Nada sai da maquina de quem usa.
+// Versão estática da suíte Be Safe para o GitHub Pages: a mesma lógica dos
+// microsserviços, compilada junto com a tela para rodar no navegador.
+// Nada sai da máquina de quem usa.
 import kof.random
 
 String marcador(Int peso) {
@@ -12,13 +12,13 @@ String marcador(Int peso) {
 String resumoPhishing(Analise a) {
     var texto = "Risco " + a.nivel + ": " + a.risco + "/100  (" + a.links + " link(s) encontrados)"
     if (a.sinais.size() == 0) {
-        return texto + "\nNenhum sinal classico de golpe. Mesmo assim, desconfie de pedidos inesperados."
+        return texto + "\nNenhum sinal clássico de golpe. Mesmo assim, desconfie de pedidos inesperados."
     }
     for (var s in a.sinais) {
         texto = texto + "\n" + marcador(s.peso) + " " + s.descricao
     }
     if (a.nivel == "alto") {
-        texto = texto + "\n\nNao clique nos links e nao responda. Fale com a empresa pelo canal oficial."
+        texto = texto + "\n\nNão clique nos links e não responda. Fale com a empresa pelo canal oficial."
     }
     return texto
 }
@@ -42,15 +42,15 @@ String resumoSenha(Avaliacao a) {
         texto = texto + "\n- " + d
     }
     texto = texto + "\n\nUm sistema seguro nunca guarda a senha em si: guarda um hash lento"
-    texto = texto + " (como PBKDF2 com 600 mil iteracoes), que torna cada tentativa de quebra cara."
+    texto = texto + " (como PBKDF2 com 600 mil iterações), que torna cada tentativa de quebra cara."
     return texto
 }
 
 main() {
-    var janela = Window("Be Safe - Suite de Conscientizacao")
+    var janela = Window("Be Safe - Suíte de Conscientização")
     var logo = Image("static/besafe-logo.png")
-    var titulo = Label("Suite de Conscientizacao")
-    var privacidade = Label("Tudo roda no seu navegador: nada do que voce digita sai daqui. Nenhum link e aberto.")
+    var titulo = Label("Suíte de Conscientização")
+    var privacidade = Label("Tudo roda no seu navegador: nada do que você digita sai daqui. Nenhum link é aberto.")
 
     // Detector de phishing
     var tituloPhishing = Label("Detector de phishing")
@@ -70,13 +70,13 @@ main() {
 
     // Cofre de senhas
     var tituloSenhas = Label("Cofre de senhas")
-    var instrucaoSenhas = Label("Teste a forca de uma senha ou gere uma senha forte.")
+    var instrucaoSenhas = Label("Teste a força de uma senha ou gere uma senha forte.")
     var senha = Input("")
     var resultadoSenhas = Label("")
     var botaoAvaliar = Button("Avaliar senha", () -> {
         var valor = senha.text()
         if (valor.length == 0 || valor.length > 256) {
-            resultadoSenhas.text = "Digite uma senha de ate 256 caracteres."
+            resultadoSenhas.text = "Digite uma senha de até 256 caracteres."
         } else {
             resultadoSenhas.text = resumoSenha(avaliar(valor))
         }

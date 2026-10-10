@@ -1,20 +1,20 @@
-// Logica do cofre de senhas, igual a de servicos/senhas, rodando direto
-// no navegador para a versao estatica (GitHub Pages).
+// Lógica do cofre de senhas, igual à de servicos/senhas, rodando direto
+// no navegador para a versão estática (GitHub Pages).
 import kof.random
 
-// Sem hashSeguro: o PBKDF2 do Kof 0.5.0-beta depende do host e nao roda num
-// navegador comum. O hash continua na versao com microsservicos.
+// Sem hashSeguro: o PBKDF2 do Kof 0.5.0-beta depende do host e não roda num
+// navegador comum. O hash continua na versão com microsserviços.
 record Avaliacao(Int forca, String rotulo, Int entropiaBits, String tempoQuebra, List<String> dicas)
 
-// Sem caracteres ambiguos (0/O, 1/l/I) para facilitar a digitacao.
+// Sem caracteres ambíguos (0/O, 1/l/I) para facilitar a digitação.
 String alfabetoGerador() = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%&*?-_=+"
 
 List<String> senhasComuns() {
     return listOf("123456", "123456789", "12345678", "senha", "password", "qwerty", "admin", "abc123", "111111", "123123", "iloveyou", "brasil", "102030", "mudar123", "senha123")
 }
 
-// log2 sem biblioteca: parte inteira por divisoes sucessivas e parte
-// fracionaria pelo metodo de quadrados (20 bits de precisao).
+// log2 sem biblioteca: parte inteira por divisões sucessivas e parte
+// fracionária pelo método dos quadrados (20 bits de precisão).
 Double log2(Double valor) {
     var x = valor
     Double resultado = 0.0
@@ -60,7 +60,7 @@ Int tamanhoDoConjunto(String senha) {
     return total
 }
 
-// Sequencia de 3+ caracteres consecutivos (abc, 123) ou repetidos (aaa).
+// Sequência de 3+ caracteres consecutivos (abc, 123) ou repetidos (aaa).
 Bool temSequencia(String senha) {
     for (var i = 0; i + 2 < senha.length; i++) {
         var a = senha.charAt(i) as Int
@@ -91,24 +91,24 @@ Int entropia(String senha) {
     return bits as Int
 }
 
-// Ataque offline com GPU: ~10 bilhoes de tentativas por segundo, em media
-// a senha cai na metade do espaco de busca.
+// Ataque offline com GPU: ~10 bilhões de tentativas por segundo; em média
+// a senha cai na metade do espaço de busca.
 String tempoQuebra(Int bits) {
     Double segundos = math.pow(2.0, (bits - 1) as Double) / 10000000000.0
-    if (segundos < 1.0) { return "instantaneo" }
+    if (segundos < 1.0) { return "instantâneo" }
     if (segundos < 60.0) { return "segundos" }
     if (segundos < 3600.0) { return "minutos" }
     if (segundos < 86400.0) { return "horas" }
     if (segundos < 2592000.0) { return "dias" }
     if (segundos < 31536000.0) { return "meses" }
     if (segundos < 3153600000.0) { return "anos" }
-    return "seculos"
+    return "séculos"
 }
 
 String rotulo(Int forca) {
     if (forca == 0) { return "muito fraca" }
     if (forca == 1) { return "fraca" }
-    if (forca == 2) { return "razoavel" }
+    if (forca == 2) { return "razoável" }
     if (forca == 3) { return "forte" }
     return "muito forte"
 }
@@ -132,19 +132,19 @@ Avaliacao avaliar(String senha) {
     }
     if (comum) {
         bits = 0
-        dicas.add("Contem uma das senhas mais vazadas do mundo: e a primeira que um atacante testa")
+        dicas.add("Contém uma das senhas mais vazadas do mundo: é a primeira que um atacante testa")
     }
     if (senha.length < 12) {
         dicas.add("Use pelo menos 12 caracteres; tamanho pesa mais que complexidade")
     }
     if (tamanhoDoConjunto(senha) < 62) {
-        dicas.add("Misture letras maiusculas, minusculas, numeros e simbolos")
+        dicas.add("Misture letras maiúsculas, minúsculas, números e símbolos")
     }
     if (temSequencia(senha)) {
-        dicas.add("Evite sequencias e repeticoes como abc, 123 ou aaa")
+        dicas.add("Evite sequências e repetições como abc, 123 ou aaa")
     }
     if (dicas.size() == 0) {
-        dicas.add("Otima senha. Guarde num gerenciador de senhas e nao reutilize em outros sites")
+        dicas.add("Ótima senha. Guarde num gerenciador de senhas e não reutilize em outros sites")
     }
     var f = forca(bits)
     return Avaliacao(f, rotulo(f), bits, tempoQuebra(bits), dicas)

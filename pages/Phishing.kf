@@ -1,12 +1,13 @@
-// Logica do detector de phishing, igual a de servicos/phishing, rodando
-// direto no navegador para a versao estatica (GitHub Pages).
+// Lógica do detector de phishing, igual à de servicos/phishing, rodando
+// direto no navegador para a versão estática (GitHub Pages).
 
 record Sinal(String tipo, String descricao, Int peso)
 record Analise(Int risco, String nivel, Int links, List<Sinal> sinais)
 
-// Grupos de expressoes; basta uma do grupo aparecer para o sinal contar.
+// Termos sem acento: o texto é normalizado antes da comparação, então
+// "urgência" e "urgencia" contam igual.
 List<String> urgencia() {
-    return listOf("urgente", "imediatamente", "ultimo aviso", "24 horas", "sera bloquead", "sera suspens", "conta suspensa", "acao necessaria", "evite o bloqueio", "prazo final")
+    return listOf("urgente", "urgencia", "imediatamente", "ultimo aviso", "24 horas", "sera bloquead", "sera suspens", "conta suspensa", "acao necessaria", "evite o bloqueio", "prazo final")
 }
 
 List<String> credenciais() {
@@ -35,6 +36,17 @@ List<String> tldsSuspeitos() {
 
 List<String> marcas() {
     return listOf("itau", "bradesco", "nubank", "caixa", "santander", "bancodobrasil", "gov", "receita", "correios", "mercadolivre", "netflix", "microsoft", "google", "apple")
+}
+
+// Minúsculas e sem acento, para comparar com as listas acima.
+String normalizar(String texto) {
+    return texto.toLowerCase()
+        .replace("á", "a").replace("à", "a").replace("â", "a").replace("ã", "a").replace("ä", "a")
+        .replace("é", "e").replace("è", "e").replace("ê", "e").replace("ë", "e")
+        .replace("í", "i").replace("ì", "i").replace("î", "i").replace("ï", "i")
+        .replace("ó", "o").replace("ò", "o").replace("ô", "o").replace("õ", "o").replace("ö", "o")
+        .replace("ú", "u").replace("ù", "u").replace("û", "u").replace("ü", "u")
+        .replace("ç", "c").replace("ñ", "n")
 }
 
 Bool contemAlgum(String texto, List<String> termos) {
@@ -86,7 +98,7 @@ String hostDe(String link) {
     return link.substring(inicio, fim)
 }
 
-// Host formado so por digitos e pontos (ex.: 192.168.0.10).
+// Host formado só por dígitos e pontos (ex.: 192.168.0.10).
 Bool ehIp(String host) {
     if (host.length == 0) {
         return false
@@ -107,51 +119,51 @@ List<Sinal> sinaisDoLink(String link) {
         sinais.add(Sinal("link", "Link sem HTTPS: " + host, 10))
     }
     if (host.contains("@")) {
-        sinais.add(Sinal("link", "Link com '@' no endereco, truque para esconder o destino real: " + host, 25))
+        sinais.add(Sinal("link", "Link com '@' no endereço, truque para esconder o destino real: " + host, 25))
     }
     if (ehIp(host)) {
-        sinais.add(Sinal("link", "Link aponta para um IP em vez de um dominio: " + host, 25))
+        sinais.add(Sinal("link", "Link aponta para um IP em vez de um domínio: " + host, 25))
     }
     if (host.contains("xn--")) {
-        sinais.add(Sinal("link", "Dominio com caracteres disfarcados (punycode): " + host, 25))
+        sinais.add(Sinal("link", "Domínio com caracteres disfarçados (punycode): " + host, 25))
     }
     if (contemAlgum(host, encurtadores())) {
         sinais.add(Sinal("link", "Link encurtado esconde o destino: " + host, 15))
     }
     if (contemAlgum(host, tldsSuspeitos())) {
-        sinais.add(Sinal("link", "Dominio com terminacao muito usada em golpes: " + host, 10))
+        sinais.add(Sinal("link", "Domínio com terminação muito usada em golpes: " + host, 10))
     }
-    // Marca conhecida misturada com hifen costuma ser imitacao,
+    // Marca conhecida misturada com hífen costuma ser imitação,
     // ex.: itau-seguranca.com ou nubank-atualizacao.net.
     if (contemAlgum(host, marcas()) && host.contains("-")) {
-        sinais.add(Sinal("link", "Dominio imita uma marca conhecida: " + host, 20))
+        sinais.add(Sinal("link", "Domínio imita uma marca conhecida: " + host, 20))
     }
     return sinais
 }
 
 String nivel(Int risco) {
     if (risco >= 50) { return "alto" }
-    if (risco >= 20) { return "medio" }
+    if (risco >= 20) { return "médio" }
     return "baixo"
 }
 
 Analise analisar(String mensagem) {
-    var texto = mensagem.toLowerCase()
+    var texto = normalizar(mensagem)
     var sinais = listOf<Sinal>()
     if (contemAlgum(texto, urgencia())) {
-        sinais.add(Sinal("urgencia", "Cria senso de urgencia ou ameaca de bloqueio", 15))
+        sinais.add(Sinal("urgencia", "Cria senso de urgência ou ameaça de bloqueio", 15))
     }
     if (contemAlgum(texto, credenciais())) {
-        sinais.add(Sinal("credenciais", "Pede senha, codigo ou dados pessoais", 25))
+        sinais.add(Sinal("credenciais", "Pede senha, código ou dados pessoais", 25))
     }
     if (contemAlgum(texto, dinheiro())) {
-        sinais.add(Sinal("dinheiro", "Envolve Pix, boleto, premio ou pagamento", 15))
+        sinais.add(Sinal("dinheiro", "Envolve Pix, boleto, prêmio ou pagamento", 15))
     }
     if (contemAlgum(texto, saudacaoGenerica())) {
-        sinais.add(Sinal("saudacao", "Saudacao generica, sem o seu nome", 5))
+        sinais.add(Sinal("saudacao", "Saudação genérica, sem o seu nome", 5))
     }
     if (contemAlgum(texto, anexosPerigosos())) {
-        sinais.add(Sinal("anexo", "Menciona anexo executavel ou compactado", 15))
+        sinais.add(Sinal("anexo", "Menciona anexo executável ou compactado", 15))
     }
     var links = extrairLinks(mensagem)
     for (var link in links) {

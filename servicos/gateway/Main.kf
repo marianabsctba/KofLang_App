@@ -1,5 +1,5 @@
-// Gateway: porta de entrada da suite Be Safe. Serve o frontend e repassa
-// cada chamada /api para o microsservico responsavel.
+// Gateway: porta de entrada da suíte Be Safe. Serve o frontend e repassa
+// cada chamada /api para o microsserviço responsável.
 import kof.http
 
 String urlServico(String variavel, String padrao) {
@@ -13,10 +13,10 @@ String urlServico(String variavel, String padrao) {
 String phishing() = urlServico("PHISHING_URL", "http://localhost:8081")
 String senhas() = urlServico("SENHAS_URL", "http://localhost:8082")
 
-String indisponivel() = "{\"erro\": \"servico indisponivel, tente novamente\"}"
+String indisponivel() = "{\"erro\": \"serviço indisponível, tente novamente\"}"
 
-// O cliente http devolve so o corpo; erro de validacao do servico chega
-// como {"erro": ...} e e repassado como 400.
+// O cliente http devolve só o corpo; erro de validação do serviço chega
+// como {"erro": ...} e é repassado como 400.
 String repassarPost(String url, String corpo) {
     try {
         var resposta = http.post(url, corpo)
@@ -37,8 +37,8 @@ String repassarGet(String url) {
     }
 }
 
-// So repassa o tamanho se for numerico, para nada alem de digitos
-// chegar na URL do servico interno.
+// Só repassa o tamanho se for numérico, para nada além de dígitos
+// chegar na URL do serviço interno.
 String parametroTamanho(String? tamanho) {
     if (tamanho == null) {
         return ""

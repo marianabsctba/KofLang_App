@@ -1,5 +1,5 @@
-// Frontend da suite Be Safe, escrito em Kof e compilado para JavaScript
-// (KofJS). O gateway serve esta pagina e a API /api na mesma origem.
+// Frontend da suíte Be Safe, escrito em Kof e compilado para JavaScript
+// (KofJS). O gateway serve esta página e a API /api na mesma origem.
 import kof.http
 
 record Sinal(String tipo, String descricao, Int peso)
@@ -7,7 +7,7 @@ record Analise(Int risco, String nivel, Int links)
 record Avaliacao(Int forca, String rotulo, Int entropiaBits, String tempoQuebra, String hashSeguro)
 record SenhaGerada(String senha, Int entropiaBits)
 
-// Lambdas capturam copias somente leitura; estado mutavel fica em static.
+// Lambdas capturam cópias somente leitura; estado mutável fica em static.
 class Tela {
     static Int analises = 0
 }
@@ -20,9 +20,9 @@ String enviar(String url, String corpo) {
     return http.post(url, corpo)
 }
 
-// Contorno: no KofJS 0.5.0-beta o json.decode nao converte uma lista
-// aninhada dentro de outro record. Os servicos sempre mandam a lista
-// como ultimo campo, e ela e decodificada separadamente.
+// Contorno: no KofJS 0.5.0-beta o json.decode não converte uma lista
+// aninhada dentro de outro record. Os serviços sempre mandam a lista
+// como último campo, e ela é decodificada separadamente.
 String listaFinal(String corpo, String campo) {
     var chave = "\"" + campo + "\":"
     return corpo.substring(corpo.indexOf(chave) + chave.length, corpo.length - 1)
@@ -39,13 +39,13 @@ String resumoPhishing(String corpo) {
     var sinais = json.decode<List<Sinal>>(listaFinal(corpo, "sinais"))
     var texto = "Risco " + a.nivel + ": " + a.risco + "/100  (" + a.links + " link(s) encontrados)"
     if (sinais.size() == 0) {
-        return texto + "\nNenhum sinal classico de golpe. Mesmo assim, desconfie de pedidos inesperados."
+        return texto + "\nNenhum sinal clássico de golpe. Mesmo assim, desconfie de pedidos inesperados."
     }
     for (var s in sinais) {
         texto = texto + "\n" + marcador(s.peso) + " " + s.descricao
     }
     if (a.nivel == "alto") {
-        texto = texto + "\n\nNao clique nos links e nao responda. Fale com a empresa pelo canal oficial."
+        texto = texto + "\n\nNão clique nos links e não responda. Fale com a empresa pelo canal oficial."
     }
     return texto
 }
@@ -75,10 +75,10 @@ String resumoSenha(String corpo) {
 }
 
 main() {
-    var janela = Window("Be Safe - Suite de Conscientizacao")
+    var janela = Window("Be Safe - Suíte de Conscientização")
     var logo = Image("static/besafe-logo.png")
-    var titulo = Label("Suite de Conscientizacao")
-    var privacidade = Label("Nada do que voce digita aqui e salvo. Nenhum link e aberto.")
+    var titulo = Label("Suíte de Conscientização")
+    var privacidade = Label("Nada do que você digita aqui é salvo. Nenhum link é aberto.")
 
     // Detector de phishing
     var tituloPhishing = Label("Detector de phishing")
@@ -98,14 +98,14 @@ main() {
                     resultadoPhishing.text = resumoPhishing(corpo)
                 }
             } catch (Exception e) {
-                resultadoPhishing.text = "Servico indisponivel. Confira se os microsservicos estao no ar."
+                resultadoPhishing.text = "Serviço indisponível. Confira se os microsserviços estão no ar."
             }
         }
     })
 
     // Cofre de senhas
     var tituloSenhas = Label("Cofre de senhas")
-    var instrucaoSenhas = Label("Teste a forca de uma senha ou gere uma senha forte.")
+    var instrucaoSenhas = Label("Teste a força de uma senha ou gere uma senha forte.")
     var senha = Input("")
     var resultadoSenhas = Label("")
     var botaoAvaliar = Button("Avaliar senha", () -> {
@@ -115,12 +115,12 @@ main() {
                 var tarefa = spawn enviar("/api/senhas/avaliar", senha.text())
                 var corpo = await tarefa
                 if (corpo.startsWith("{\"erro\"")) {
-                    resultadoSenhas.text = "Digite uma senha de ate 256 caracteres."
+                    resultadoSenhas.text = "Digite uma senha de até 256 caracteres."
                 } else {
                     resultadoSenhas.text = resumoSenha(corpo)
                 }
             } catch (Exception e) {
-                resultadoSenhas.text = "Servico indisponivel. Confira se os microsservicos estao no ar."
+                resultadoSenhas.text = "Serviço indisponível. Confira se os microsserviços estão no ar."
             }
         }
     })
@@ -132,7 +132,7 @@ main() {
                 senha.text = gerada.senha
                 resultadoSenhas.text = "Senha gerada com " + gerada.entropiaBits + " bits de entropia.\nGuarde num gerenciador de senhas e use uma diferente em cada site."
             } catch (Exception e) {
-                resultadoSenhas.text = "Servico indisponivel. Confira se os microsservicos estao no ar."
+                resultadoSenhas.text = "Serviço indisponível. Confira se os microsserviços estão no ar."
             }
         }
     })

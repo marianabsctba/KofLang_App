@@ -1,9 +1,9 @@
-# Compila o frontend e sobe os tres microsservicos da suite Be Safe.
+﻿# Compila o frontend e sobe os três microsserviços da suíte Be Safe.
 # Uso: .\scripts\subir.ps1   (depois abra http://localhost:8080)
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path -Parent $PSScriptRoot
 
-# Usa o compilador local em .kof/ se existir; senao, o kof do PATH.
+# Usa o compilador local em .kof/ se existir; senão, o kof do PATH.
 $kof = Join-Path $raiz '.kof\bin\kof.bat'
 if (-not (Test-Path $kof)) { $kof = 'kof' }
 
@@ -32,7 +32,7 @@ foreach ($s in $servicos) {
 }
 Remove-Item Env:PORTA, Env:FRONTEND_DIR
 
-Write-Host 'Aguardando os servicos...'
+Write-Host 'Aguardando os serviços...'
 foreach ($s in $servicos) {
     for ($i = 0; $i -lt 60; $i++) {
         try { Invoke-RestMethod "http://localhost:$($s.porta)/saude" -TimeoutSec 2 | Out-Null; break } catch { Start-Sleep 2 }

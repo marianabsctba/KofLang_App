@@ -1,4 +1,4 @@
-# Compila a versao estatica (pasta pages/, Kof -> JavaScript) e publica no
+# Compila a versão estática (pasta pages/, Kof -> JavaScript) e publica no
 # GitHub Pages. Requer Settings > Pages > Source: GitHub Actions.
 name: Publicar no GitHub Pages
 
@@ -36,7 +36,7 @@ jobs:
           tar -xzf "$arquivo" -C .kof --strip-components=1
           .kof/bin/kof version
 
-      - name: Compilar a versao estatica
+      - name: Compilar a versão estática
         run: |
           .kof/bin/kof build pages --target js --output dist/pages
           cp pages/index.html dist/pages/
